@@ -19,8 +19,8 @@ const parseOrmData = (objectList) => {
 
       if (depth === 1) {
         const ifColumn = splitColumn;
-        if (tempObjectName !== 'main_objact') {
-          tempObjectName = 'main_objact';
+        if (tempObjectName !== 'main_object') {
+          tempObjectName = 'main_object';
 
           if (tempObject[ifColumn] !== value) {
             tempObject[ifColumn] = value;
@@ -31,10 +31,12 @@ const parseOrmData = (objectList) => {
         if (isNewRow) {
           row[ifColumn] = object[key];
         }
-      } else if (depth === 2) {
+      } else if (depth) {
         const splitKey = key.split('j_');
         splitKey.reverse();
         const [column, ...objectNames] = splitKey;
+        objectNames.reverse();
+        // return console.log(objectNames);
 
         if (tempObjectName !== objectNames.join('.')) {
           tempObjectName = objectNames.join('.');
@@ -42,18 +44,16 @@ const parseOrmData = (objectList) => {
           isNull = false;
           if (object[key] === null) isNull = true;
 
-          const a = getNestedObject(tempObject, objectNames);
-          console.log(a);
+          const getTempObject = getNestedObject(tempObject, objectNames);
 
-          return;
+          // if (!tempObject[ifObject] || !tempObject[ifObject][ifColumn].includes(value)) 
+          if (!Object.keys(getTempObject).length) {
+            if (!getTempObject) getTempObject = {};
+            if (!getTempObject[column]) getTempObject[column] = [];
 
-
-          // tempObject ID list 에 push
-          if (!tempObject[objectNames[0]] || !tempObject[objectNames[0]][column].includes(value)) {
-            if (!tempObject[objectNames[0]]) tempObject[objectNames[0]] = {};
-            if (!tempObject[objectNames[0]][column]) tempObject[objectNames[0]][column] = [];
-            tempObject[objectNames[0]][column].push(value);
+            getTempObject[column].push(value);
             isTempObjectPush = true;
+            return;
             if (!isNewRow) {
 
               const resultIndex = result.length - 1;
@@ -72,6 +72,8 @@ const parseOrmData = (objectList) => {
             return;
             return result[result.length - 1][objectNames[0]] = null;
           }
+
+          return;
         }
         return;
 
@@ -94,6 +96,8 @@ const parseOrmData = (objectList) => {
 
     if (isNewRow) result.push(row);
   });
+
+  console.log(tempObject);
   return result;
 }
 
@@ -101,15 +105,9 @@ const parseOrmData = (objectList) => {
 const getNestedObject = (tempObject, objectNames) => {
   return objectNames.reduce((acc, key) => {
     if (!acc[key]) acc[key] = {}; // 키가 없으면 초기화
-    return acc[key]; // 다음 객체로 이동
-  }, tempObject);
+    return acc[key]; // 현재 키의 참조를 반환
+  }, tempObject); // 초기값은 반드시 `tempObject`
 };
-
-const reculsion = (result, object, key, objectNames, column, tempObject, isNull, isNewRow, isTempObjectPush, tempObjectName) => {
-  // const targetObject = objectNames.reduce((acc, curr) => acc?.[curr], result[0]);;
-  // console.log(result);
-  // ID 값일때 if문 탐색
-}
 
 const result = parseOrmData(inputData)
 // console.log(result);
@@ -166,8 +164,8 @@ const result = parseOrmData(inputData)
 
 //       if (depth === 1) {
 //         const ifColumn = splitColumn;
-//         if (tempObjectName !== 'main_objact') {
-//           tempObjectName = 'main_objact';
+//         if (tempObjectName !== 'main_object') {
+//           tempObjectName = 'main_object';
 
 //           if (tempObject[ifColumn] !== value) {
 //             tempObject[ifColumn] = value;
