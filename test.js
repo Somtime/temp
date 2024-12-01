@@ -4,9 +4,9 @@ const expectedData = require('./expectedData');
 const parseOrmData = (objectList) => {
   const result = [];
   let tempObject = {};
-  objectList.forEach((object, index) => {
-    if (index !== 0) return;
-    let row = {};
+  objectList.forEach((object) => {
+    const resultIndex = result.length - 1;
+    let row;
     let isNull = false;
     let isNewRow = false;
     let isTempObjectPush = false;
@@ -25,10 +25,13 @@ const parseOrmData = (objectList) => {
           if (tempObject[ifColumn] !== value) {
             tempObject[ifColumn] = value;
             isNewRow = true;
+          } else {
+            isNewRow = false;
           }
         }
 
         if (isNewRow) {
+          if (!row) row = {};
           row[ifColumn] = object[key];
         }
       } else if (depth) {
@@ -36,81 +39,83 @@ const parseOrmData = (objectList) => {
         splitKey.reverse();
         const [column, ...objectNames] = splitKey;
         objectNames.reverse();
-        // return console.log(objectNames);
+
+        const getTempObject = getNestedObject(tempObject, objectNames);
+        let getRow = getNestedObject(row || result[resultIndex], objectNames, value);
 
         if (tempObjectName !== objectNames.join('.')) {
           tempObjectName = objectNames.join('.');
           isTempObjectPush = false;
           isNull = false;
-          if (object[key] === null) isNull = true;
+          if (object[key] === null) return isNull = true;
 
-          const getTempObject = getNestedObject(tempObject, objectNames);
-
-          // if (!tempObject[ifObject] || !tempObject[ifObject][ifColumn].includes(value)) 
-          if (!Object.keys(getTempObject).length) {
+          if (!Object.keys(getTempObject).length || !getTempObject[column].includes(value)) {
             if (!getTempObject) getTempObject = {};
             if (!getTempObject[column]) getTempObject[column] = [];
 
             getTempObject[column].push(value);
             isTempObjectPush = true;
-            return;
+
             if (!isNewRow) {
 
-              const resultIndex = result.length - 1;
-              // Object 로 들어가 있던 데이터에 배열로 추가로 넣어줘야 하기 때문에 Array 타입으로 변경
-              if (!Array.isArray(result[resultIndex][objectNames[0]])) {
-                const temp = result[resultIndex][objectNames[0]];
-                result[resultIndex][objectNames[0]] = [];
-                result[resultIndex][objectNames[0]].push(temp);
+              if (!Array.isArray(getRow)) {
+                const temp = getRow;
+                setNestedObject(result[resultIndex], objectNames, []);
+                getRow = getNestedObject(result[resultIndex], objectNames, value);
+                getRow.push(temp);
               }
 
               const newObject = {};
               newObject[column] = value;
-              result[resultIndex][objectNames[0]].push(newObject);
+              getRow.push(newObject);
             }
-          } else if (isNull) {
-            return;
-            return result[result.length - 1][objectNames[0]] = null;
           }
-
-          return;
         }
-        return;
 
         if (isNull) return;
         if (isNewRow) {
-          if (!row[objectNames[0]]) row[objectNames[0]] = {}
-          row[objectNames[0]][column] = value;
+          if (!getRow) getRow = {};
+          getRow[column] = value;
+
         } else {
           if (!isTempObjectPush) return;
-          const resultIndex = result.length - 1;
-          const ifResultObject = result[resultIndex][objectNames[0]];
-          const ifResultObjectIndex = ifResultObject.length - 1;
-          if (!ifResultObject[ifResultObjectIndex]) ifResultObject[ifResultObjectIndex] = {};
-          ifResultObject[ifResultObjectIndex][column] = value;
+
+          const getRowIndex = getRow.length - 1;
+          if (!getRow[getRowIndex]) getRow[getRowIndex] = {};
+          getRow[getRowIndex][column] = value;
         }
 
-        // ...
+        return result;
       }
     });
-
     if (isNewRow) result.push(row);
   });
 
-  console.log(tempObject);
   return result;
 }
 
 
-const getNestedObject = (tempObject, objectNames) => {
+const getNestedObject = (object, objectNames, value) => {
   return objectNames.reduce((acc, key) => {
     if (!acc[key]) acc[key] = {}; // 키가 없으면 초기화
-    return acc[key]; // 현재 키의 참조를 반환
-  }, tempObject); // 초기값은 반드시 `tempObject`
+    if (value === null && !Object.keys(acc[key]).length) {
+      acc[key] = null
+    };
+    return acc[key];
+  }, object); // initial object
+};
+
+const setNestedObject = (object, objectNames, value) => {
+  objectNames.reduce((acc, key, idx) => {
+    if (idx === objectNames.length - 1) {
+      acc[key] = value; // 최종 키에 값 설정
+    }
+    return acc[key];
+  }, object);
 };
 
 const result = parseOrmData(inputData)
-// console.log(result);
+console.log(result[0], result.length);
 
 
 
